@@ -1,0 +1,25 @@
+{
+	"name": "DS_ADLS2_RAW_YYJ",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "YYJ_LandingDL",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"directory": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "raw"
+			},
+			"compressionCodec": "gzip"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

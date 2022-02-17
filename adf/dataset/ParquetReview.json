@@ -1,0 +1,21 @@
+{
+	"name": "ParquetReview",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "YYJ_LandingDL",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "BCG_CALENDAR_20201125.parquet",
+				"folderPath": "promoopt/cis/calendar_dim/2020/12/02",
+				"fileSystem": "raw"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

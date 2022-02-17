@@ -1,0 +1,31 @@
+{
+	"name": "trigger1",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_Master_Source_Load_YYJ",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"Source": "promoopt",
+					"LoadType": "Incremental",
+					"ToBeResumed": false,
+					"Frequency": "DAY",
+					"TriggerStartTime": "@string(formatDateTime(utcnow(),'dd/MM/yyyy')))"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/landing/blobs/",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/1df0109f-6ed5-424d-8662-5c101712d1b1/resourceGroups/ADS/providers/Microsoft.Storage/storageAccounts/datalakestgen2",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

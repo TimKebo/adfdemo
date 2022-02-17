@@ -1,0 +1,829 @@
+{
+	"name": "PL_Child_FTP_Load_YYJ",
+	"properties": {
+		"description": "Child pipeline for handing File based FTP data.",
+		"activities": [
+			{
+				"name": "ACT_LKP_InsertPipelineLog",
+				"description": "Activity for Inserting pipeline log",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[EtlLog].[uspInsertPipelineLog]",
+						"storedProcedureParameters": {
+							"ParentPipelineLogID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.ParentPipelineLogID",
+									"type": "Expression"
+								}
+							},
+							"PipelineRunID": {
+								"type": "Guid",
+								"value": {
+									"value": "@pipeline().RunId",
+									"type": "Expression"
+								}
+							},
+							"SliceDateTime": {
+								"type": "DateTime",
+								"value": {
+									"value": "@pipeline().parameters.SliceDateTime",
+									"type": "Expression"
+								}
+							},
+							"SourceID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.SourceID",
+									"type": "Expression"
+								}
+							},
+							"SourceObjectID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.SourceObjectID",
+									"type": "Expression"
+								}
+							},
+							"RunFrequencyDurationUnit": {
+								"type": "string",
+								"value": {
+									"value": "@pipeline().parameters.Frequency",
+									"type": "Expression"
+								}
+							},
+							"ObjectLoadStartDateTime": {
+								"type": "DateTime",
+								"value": {
+									"value": "@pipeline().parameters.LoadStartDateTime",
+									"type": "Expression"
+								}
+							},
+							"LoadType": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.LoadType",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Operations",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "ACT_LKP_GetFileSlices",
+				"description": "Activity to get all the slices that shall be processed for this file.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "ACT_LKP_InsertPipelineLog",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[EtlLog].[uspGetFileSlicesToProcess]",
+						"storedProcedureParameters": {
+							"LastRefreshDateTime": {
+								"type": "DateTime",
+								"value": {
+									"value": "@pipeline().parameters.LoadStartDateTime",
+									"type": "Expression"
+								}
+							},
+							"SliceDateTime": {
+								"type": "DateTime",
+								"value": {
+									"value": "@pipeline().parameters.SliceDateTime",
+									"type": "Expression"
+								}
+							},
+							"SourceObjectID": {
+								"type": "Int32",
+								"value": {
+									"value": "@pipeline().parameters.SourceObjectID",
+									"type": "Expression"
+								}
+							}
+						},
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_ASQL_Operations",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ACT_FEACH_SlicesToProcess",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "ACT_LKP_GetFileSlices",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('ACT_LKP_GetFileSlices').output.value",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "ACT_LKP_InsertCopyFilesDataActivityLog",
+							"description": "Activity for Inserting pipeline Activity log",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "ACT_META_RawFolderExists",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[EtlLog].[uspInsertPipelineActivityLog]",
+									"storedProcedureParameters": {
+										"ActivityName": {
+											"type": "String",
+											"value": "ACT_Copy_Files_To_Raw"
+										},
+										"ActivityType": {
+											"type": "String",
+											"value": "Copy"
+										},
+										"PipelineLogID": {
+											"type": "Int32",
+											"value": {
+												"value": "@activity('ACT_LKP_InsertPipelineLog').output.firstRow.PipelineLogID",
+												"type": "Expression"
+											}
+										},
+										"SliceDateTime": {
+											"type": "DateTime",
+											"value": {
+												"value": "@item().SliceDateTime",
+												"type": "Expression"
+											}
+										},
+										"SourceObjectID": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.SourceObjectID",
+												"type": "Expression"
+											}
+										},
+										"ToBeResumed": {
+											"type": "Boolean",
+											"value": {
+												"value": "@pipeline().parameters.ToBeResumed",
+												"type": "Expression"
+											}
+										},
+										"RunFrequencyDurationUnit": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.Frequency",
+												"type": "Expression"
+											}
+										},
+										"LoadType": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.LoadType",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Operations",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "ACT_IF_CopyDataToBeRun",
+							"description": "Check if To be run is true",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "ACT_IF_RawFolderExists",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('ACT_LKP_InsertCopyFilesDataActivityLog').output.firstRow.ToBeRun,1)",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "ACT_Copy_From_Landing_To_Raw",
+										"type": "Copy",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"source": {
+												"type": "DelimitedTextSource",
+												"storeSettings": {
+													"type": "AzureBlobFSReadSettings",
+													"recursive": true,
+													"wildcardFileName": "**.**"
+												},
+												"formatSettings": {
+													"type": "DelimitedTextReadSettings",
+													"skipLineCount": 1
+												}
+											},
+											"sink": {
+												"type": "ParquetSink",
+												"storeSettings": {
+													"type": "AzureBlobFSWriteSettings"
+												},
+												"formatSettings": {
+													"type": "ParquetWriteSettings"
+												}
+											},
+											"enableStaging": false,
+											"enableSkipIncompatibleRow": false,
+											"logSettings": {
+												"enableCopyActivityLog": true,
+												"copyActivityLogSettings": {
+													"logLevel": "Warning",
+													"enableReliableLogging": false
+												},
+												"logLocationSettings": {
+													"linkedServiceName": {
+														"referenceName": "YYJ_LandingDL",
+														"type": "LinkedServiceReference"
+													},
+													"path": "copyactivity-logs"
+												}
+											}
+										},
+										"inputs": [
+											{
+												"referenceName": "DS_ADLS2_Landing_Delimiter_YYJ",
+												"type": "DatasetReference",
+												"parameters": {
+													"FolderPath": {
+														"value": "@activity('ACT_LKP_GetObjectProperties').output.firstRow.LandingFolderPath",
+														"type": "Expression"
+													},
+													"Delimiter": {
+														"value": "@activity('ACT_LKP_GetObjectProperties').output.firstRow.FileDelimiter",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"outputs": [
+											{
+												"referenceName": "DS_ADSL2_RAW_YYJ_Param",
+												"type": "DatasetReference",
+												"parameters": {
+													"FolderPath": {
+														"value": "@activity('ACT_LKP_GetObjectProperties').output.firstRow.RawFolderPath",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									},
+									{
+										"name": "ACT_SP_ActivitySuccess",
+										"description": "SP copy success",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "ACT_Copy_From_Landing_To_Raw",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[EtlLog].[uspUpdatePipelineActivityLog]",
+											"storedProcedureParameters": {
+												"ActivityStatus": {
+													"value": "Succeeded",
+													"type": "String"
+												},
+												"PipelineActivityLogID": {
+													"value": {
+														"value": "@activity('ACT_LKP_InsertCopyFilesDataActivityLog').output.firstRow.PipelineActivityLogID",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												},
+												"SourceCount": {
+													"value": {
+														"value": "@activity('ACT_Copy_From_Landing_To_Raw').output.filesRead",
+														"type": "Expression"
+													},
+													"type": "Int64"
+												},
+												"SourceDataVolume": {
+													"value": {
+														"value": "@activity('ACT_Copy_From_Landing_To_Raw').output.dataRead",
+														"type": "Expression"
+													},
+													"type": "Int64"
+												},
+												"TargetCount": {
+													"value": {
+														"value": "@activity('ACT_Copy_From_Landing_To_Raw').output.filesWritten",
+														"type": "Expression"
+													},
+													"type": "Int64"
+												},
+												"TargetDataVolume": {
+													"value": {
+														"value": "@activity('ACT_Copy_From_Landing_To_Raw').output.dataWritten",
+														"type": "Expression"
+													},
+													"type": "Int64"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "LS_ASQL_Operations",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "ACT_SP_ActivityFailure",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "ACT_Copy_From_Landing_To_Raw",
+												"dependencyConditions": [
+													"Failed"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[EtlLog].[uspInsertPipelineActivityErrorLog]",
+											"storedProcedureParameters": {
+												"ErrorMessage": {
+													"value": {
+														"value": "@activity('ACT_Copy_From_Landing_To_Raw').error.Message",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"PipelineActivityLogID": {
+													"value": {
+														"value": "@activity('ACT_LKP_InsertCopyFilesDataActivityLog').output.firstRow.PipelineActivityLogID",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												},
+												"PipelineLogID": {
+													"value": {
+														"value": "@activity('ACT_LKP_InsertPipelineLog').output.firstRow.PipelineLogID",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "LS_ASQL_Operations",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "ACT_LKP_GetObjectProperties",
+							"description": "Activity to get the object properties.",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[EtlLog].[uspGetSourceObjectProperties]",
+									"storedProcedureParameters": {
+										"SliceDateTime": {
+											"type": "DateTime",
+											"value": {
+												"value": "@item().SliceDateTime",
+												"type": "Expression"
+											}
+										},
+										"SourceID": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.SourceID",
+												"type": "Expression"
+											}
+										},
+										"SourceObjectID": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.SourceObjectID",
+												"type": "Expression"
+											}
+										},
+										"LoadType": {
+											"type": "String",
+											"value": {
+												"value": "@pipeline().parameters.LoadType",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Operations",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "ACT_SP_PipelineFailure",
+							"description": "Execute SP to fail the pipeline.",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "ACT_LKP_GetObjectProperties",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[EtlLog].[uspUpdatePipelineLog]",
+								"storedProcedureParameters": {
+									"PipelineLogID": {
+										"value": {
+											"value": "@activity('ACT_LKP_InsertPipelineLog').output.firstRow.PipelineLogID",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"PipelineStatus": {
+										"value": "Failed",
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_ASQL_Operations",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "ACT_META_RawFolderExists",
+							"description": "Check if the landing folder already exists or not",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "ACT_LKP_GetObjectProperties",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_ADLS2_Landing_RAW_YYJ",
+									"type": "DatasetReference",
+									"parameters": {
+										"FolderPath": {
+											"value": "@activity('ACT_LKP_GetObjectProperties').output.firstRow.RawFolderPath",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists"
+								]
+							}
+						},
+						{
+							"name": "ACT_IF_RawFolderExists",
+							"description": "If the FTP on-prem to landing need to be run and raw folder already exists then clean the raw folder.",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "ACT_LKP_InsertCopyFilesDataActivityLog",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@and(equals(activity('ACT_LKP_InsertCopyFilesDataActivityLog').output.firstRow.ToBeRun,1), bool(activity('ACT_META_RawFolderExists').output.Exists))",
+									"type": "Expression"
+								},
+								"ifTrueActivities": [
+									{
+										"name": "ACT_DEL_Raw",
+										"description": "Clean the Raw folder by deleting any existing files.",
+										"type": "Delete",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"dataset": {
+												"referenceName": "DS_ADLS2_Landing_RAW_YYJ",
+												"type": "DatasetReference",
+												"parameters": {
+													"FolderPath": {
+														"value": "@activity('ACT_LKP_GetObjectProperties').output.firstRow.RawFolderPath",
+														"type": "Expression"
+													}
+												}
+											},
+											"enableLogging": false,
+											"recursive": true
+										}
+									}
+								]
+							}
+						},
+						{
+							"name": "ACT_META_AfterCopyRawFolderExists",
+							"description": "Check if the raw folder exists or not i.e. whether any files got copied after the copy activity got executed.",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "ACT_IF_CopyDataToBeRun",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_ADLS2_Landing_RAW_YYJ",
+									"type": "DatasetReference",
+									"parameters": {
+										"FolderPath": {
+											"value": "@activity('ACT_LKP_GetObjectProperties').output.firstRow.RawFolderPath",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"exists",
+									"childItems"
+								]
+							}
+						},
+						{
+							"name": "ACT_LKP_InsertLandingFileDetails",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "ACT_META_AfterCopyRawFolderExists",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[EtlLog].[uspInsertSourceFileProcessLog]",
+									"storedProcedureParameters": {
+										"MetadataJson": {
+											"type": "String",
+											"value": {
+												"value": "@string(activity('ACT_META_AfterCopyRawFolderExists').output.childItems)",
+												"type": "Expression"
+											}
+										},
+										"PipelineLogID": {
+											"type": "Int32",
+											"value": {
+												"value": "@activity('ACT_LKP_InsertPipelineLog').output.firstRow.PipelineLogID",
+												"type": "Expression"
+											}
+										},
+										"SourceObjectId": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.SourceObjectID",
+												"type": "Expression"
+											}
+										}
+									},
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "DS_ASQL_Operations",
+									"type": "DatasetReference"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "ACT_SP_UpdatePipelineStatus",
+				"description": "Activity to update the pipeline status",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ACT_FEACH_SlicesToProcess",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[EtlLog].[uspUpdatePipelineLog]",
+					"storedProcedureParameters": {
+						"PipelineLogID": {
+							"value": {
+								"value": "@activity('ACT_LKP_InsertPipelineLog').output.firstRow.PipelineLogID",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						},
+						"PipelineStatus": {
+							"value": "Succeeded",
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "LS_ASQL_Operations",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"ParentPipelineLogID": {
+				"type": "int",
+				"defaultValue": 18
+			},
+			"SourceID": {
+				"type": "int",
+				"defaultValue": 1
+			},
+			"SourceObjectID": {
+				"type": "int",
+				"defaultValue": 1
+			},
+			"SliceDateTime": {
+				"type": "string",
+				"defaultValue": "12/02/2020"
+			},
+			"ToBeResumed": {
+				"type": "bool",
+				"defaultValue": false
+			},
+			"Frequency": {
+				"type": "string",
+				"defaultValue": "DAY"
+			},
+			"LoadStartDateTime": {
+				"type": "string",
+				"defaultValue": "1900-01-01T00:00:00Z"
+			},
+			"LoadType": {
+				"type": "string",
+				"defaultValue": "FULL"
+			}
+		},
+		"variables": {
+			"DatabricksActivityToBeRun": {
+				"type": "Boolean"
+			}
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,17 @@
+{
+	"name": "Binaryto",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "YYJ_LandingDL",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileSystem": "landing"
+			}
+		}
+	}
+}

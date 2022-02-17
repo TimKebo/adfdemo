@@ -1,0 +1,21 @@
+{
+	"name": "LS_ADB_LandingToCentralized",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://centralindia.azuredatabricks.net",
+			"accessToken": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_KV_Secrets",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "DataIngestion-Databricks-AccessToken",
+				"secretVersion": ""
+			},
+			"existingClusterId": "##ClusterID##"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}

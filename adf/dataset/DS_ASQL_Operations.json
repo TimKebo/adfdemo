@@ -1,0 +1,12 @@
+{
+	"name": "DS_ASQL_Operations",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ASQL_Operations",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable"
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

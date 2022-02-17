@@ -1,0 +1,18 @@
+{
+	"name": "Binary_MS",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_MS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "time_dim",
+				"fileSystem": "prepare"
+			}
+		}
+	}
+}

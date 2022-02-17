@@ -1,0 +1,11 @@
+{
+	"name": "YYJ_LandingDL",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://datalakestgen2.dfs.core.windows.net"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
+}
