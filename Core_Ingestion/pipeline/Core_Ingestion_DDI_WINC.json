@@ -1,0 +1,382 @@
+{
+    "name": "Core_Ingestion_DDI_WINC",
+    "properties": {
+        "activities": [
+            {
+                "name": "Lookup1",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[usp_IngestionListTask]",
+                        "storedProcedureParameters": {
+                            "JobID": {
+                                "type": "Int32",
+                                "value": {
+                                    "value": "@pipeline().parameters.JobID",
+                                    "type": "Expression"
+                                }
+                            },
+                            "RunTime": {
+                                "type": "DateTime",
+                                "value": null
+                            },
+                            "SourceType": {
+                                "type": "String",
+                                "value": null
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "Config_Tables",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": false
+                }
+            },
+            {
+                "name": "ForEach1",
+                "type": "ForEach",
+                "dependsOn": [
+                    {
+                        "activity": "Lookup1",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "items": {
+                        "value": "@activity('Lookup1').output.value",
+                        "type": "Expression"
+                    },
+                    "batchCount": 5,
+                    "activities": [
+                        {
+                            "name": "Copy data1",
+                            "type": "Copy",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "DelimitedTextSource",
+                                    "storeSettings": {
+                                        "type": "AmazonS3ReadSettings",
+                                        "recursive": true,
+                                        "enablePartitionDiscovery": false
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextReadSettings"
+                                    }
+                                },
+                                "sink": {
+                                    "type": "DelimitedTextSink",
+                                    "storeSettings": {
+                                        "type": "AzureBlobFSWriteSettings"
+                                    },
+                                    "formatSettings": {
+                                        "type": "DelimitedTextWriteSettings",
+                                        "quoteAllText": true,
+                                        "fileExtension": ".txt"
+                                    }
+                                },
+                                "enableStaging": false,
+                                "translator": {
+                                    "type": "TabularTranslator",
+                                    "typeConversion": true,
+                                    "typeConversionSettings": {
+                                        "allowDataTruncation": true,
+                                        "treatBooleanAsNumber": false
+                                    }
+                                }
+                            },
+                            "inputs": [
+                                {
+                                    "referenceName": "Source_DDI_WINC",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "filename": {
+                                            "value": "@item().TimeField",
+                                            "type": "Expression"
+                                        },
+                                        "date": {
+                                            "value": "@formatDateTime(item().IngestDate,'yyyyMMdd')",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ],
+                            "outputs": [
+                                {
+                                    "referenceName": "DL_ODS_DDI_WINC",
+                                    "type": "DatasetReference",
+                                    "parameters": {
+                                        "tablename": {
+                                            "value": "@item().TableName",
+                                            "type": "Expression"
+                                        },
+                                        "batch": {
+                                            "value": "@item().Batch",
+                                            "type": "Expression"
+                                        },
+                                        "date": {
+                                            "value": "@formatDateTime(item().IngestDate,'yyyy/MM/dd')",
+                                            "type": "Expression"
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Update Task",
+                            "type": "SqlServerStoredProcedure",
+                            "dependsOn": [
+                                {
+                                    "activity": "Copy data1",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "storedProcedureName": "[dbo].[usp_IngestionCommitTask]",
+                                "storedProcedureParameters": {
+                                    "Batch": {
+                                        "value": {
+                                            "value": "@item().Batch",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "ID": {
+                                        "value": {
+                                            "value": "@item().ID",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "IngestDate": {
+                                        "value": {
+                                            "value": "@item().IngestDate",
+                                            "type": "Expression"
+                                        },
+                                        "type": "DateTime"
+                                    },
+                                    "RunID": {
+                                        "value": {
+                                            "value": "@pipeline().RunId",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Guid"
+                                    },
+                                    "RunTime": {
+                                        "value": {
+                                            "value": "@item().RunTime",
+                                            "type": "Expression"
+                                        },
+                                        "type": "DateTime"
+                                    },
+                                    "RowsCopied": {
+                                        "value": {
+                                            "value": "@activity('Copy data1').output.rowsCopied",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "CopyDuration": {
+                                        "value": {
+                                            "value": "@activity('Copy data1').output.copyDuration",
+                                            "type": "Expression"
+                                        },
+                                        "type": "Int32"
+                                    },
+                                    "TaskOutput": {
+                                        "value": {
+                                            "value": "@string(activity('Copy data1').output)",
+                                            "type": "Expression"
+                                        },
+                                        "type": "String"
+                                    }
+                                }
+                            },
+                            "linkedServiceName": {
+                                "referenceName": "ConfigDB",
+                                "type": "LinkedServiceReference"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "Update Job",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "FLAGFILE",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_IngestionCommitJob]",
+                    "storedProcedureParameters": {
+                        "Batch": {
+                            "value": {
+                                "value": "@activity('Lookup1').output.value[0].Batch",
+                                "type": "Expression"
+                            },
+                            "type": "Int32"
+                        },
+                        "IngestDate": {
+                            "value": {
+                                "value": "@activity('Lookup1').output.value[0].IngestDate",
+                                "type": "Expression"
+                            },
+                            "type": "DateTime"
+                        },
+                        "JobID": {
+                            "value": {
+                                "value": "@activity('Lookup1').output.value[0].JobID",
+                                "type": "Expression"
+                            },
+                            "type": "Int32"
+                        },
+                        "RunTime": {
+                            "value": {
+                                "value": "@activity('Lookup1').output.value[0].RunTime",
+                                "type": "Expression"
+                            },
+                            "type": "DateTime"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "FLAGFILE",
+                "type": "Copy",
+                "dependsOn": [
+                    {
+                        "activity": "ForEach1",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": {
+                            "value": "@concat('select TableName as SOURCE_NAME, RowsCopied as ROWS from IngestionTaskLog where JobID = ',\nstring(pipeline().parameters.JobID),\n' and Batch =  ',\nstring(activity('Lookup1').output.value[0].BATCH),\n' and IngestDate = ''',\nstring(formatDateTime(activity('Lookup1').output.value[0].IngestDate, 'yyyy-MM-dd')),\n'''')",
+                            "type": "Expression"
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "sink": {
+                        "type": "DelimitedTextSink",
+                        "storeSettings": {
+                            "type": "AzureBlobFSWriteSettings"
+                        },
+                        "formatSettings": {
+                            "type": "DelimitedTextWriteSettings",
+                            "quoteAllText": true,
+                            "fileExtension": ".csv"
+                        }
+                    },
+                    "enableStaging": false,
+                    "translator": {
+                        "type": "TabularTranslator",
+                        "typeConversion": true,
+                        "typeConversionSettings": {
+                            "allowDataTruncation": true,
+                            "treatBooleanAsNumber": false
+                        }
+                    }
+                },
+                "inputs": [
+                    {
+                        "referenceName": "Config_Tables",
+                        "type": "DatasetReference"
+                    }
+                ],
+                "outputs": [
+                    {
+                        "referenceName": "DL_ODS_DDI_WINC",
+                        "type": "DatasetReference",
+                        "parameters": {
+                            "tablename": "FLAGFILE",
+                            "batch": {
+                                "value": "@string(activity('Lookup1').output.value[0].BATCH)",
+                                "type": "Expression"
+                            },
+                            "date": {
+                                "value": "@formatDateTime(activity('Lookup1').output.value[0].IngestDate,'yyyy/MM/dd')",
+                                "type": "Expression"
+                            }
+                        }
+                    }
+                ]
+            }
+        ],
+        "parameters": {
+            "JobID": {
+                "type": "int",
+                "defaultValue": 11
+            }
+        },
+        "folder": {
+            "name": "Dev/DataExtraction"
+        },
+        "annotations": [],
+        "lastPublishTime": "2022-02-11T09:27:41Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

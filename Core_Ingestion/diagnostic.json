@@ -1,0 +1,22 @@
+{
+    "now": "2022-02-18T05:34:04.404Z",
+    "perfNow": 57666.39999997616,
+    "diagnosticCorrelation": "e22956d2-617e-41e1-8ab6-8dededa75f0a",
+    "source": "DownloadSupportFiles",
+    "environment": {
+        "productName": "adf",
+        "buildVersion": "1.0.021622.7",
+        "environmentType": 5,
+        "resourceName": "retaildatafactorytest",
+        "resourceRegion": "chinaeast2",
+        "resourceGroup": "Retail-New-BI-Platform",
+        "subscriptionId": "9de90380-089b-4aeb-8db0-01068286f9d5",
+        "sessionId": "3lSfy",
+        "operationId": "FXWIV",
+        "gitType": "live"
+    },
+    "additionalInfo": {
+        "selectedResource": "Core_Ingestion_DDI_WINC",
+        "selectedResourceType": "pipeline"
+    }
+}

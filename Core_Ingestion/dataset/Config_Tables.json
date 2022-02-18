@@ -1,0 +1,29 @@
+{
+    "name": "Config_Tables",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ConfigDB",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "AzureSqlTable",
+        "schema": [
+            {
+                "name": "ID",
+                "type": "int",
+                "precision": 10
+            },
+            {
+                "name": "Pipeline",
+                "type": "nvarchar"
+            },
+            {
+                "name": "LastDate",
+                "type": "datetime",
+                "precision": 23,
+                "scale": 3
+            }
+        ]
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

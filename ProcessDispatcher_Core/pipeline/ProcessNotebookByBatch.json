@@ -1,0 +1,599 @@
+{
+    "name": "ProcessNotebookByBatch",
+    "properties": {
+        "activities": [
+            {
+                "name": "Set Offset Copy",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Commit Effective Date",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "OffsetCopy",
+                    "value": {
+                        "value": "@variables('Offset')",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Set Offset",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Set Offset Copy",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Offset",
+                    "value": {
+                        "value": "@string(add(int(variables('OffsetCopy')), 1))",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Process",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.04:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": {
+                        "value": "@pipeline().parameters.NotebookPath",
+                        "type": "Expression"
+                    },
+                    "baseParameters": {
+                        "runtime_id": {
+                            "value": "@pipeline().RunId",
+                            "type": "Expression"
+                        },
+                        "parent_process": {
+                            "value": "@pipeline().parameters.ProcessName",
+                            "type": "Expression"
+                        },
+                        "date": {
+                            "value": "@pipeline().parameters.Date",
+                            "type": "Expression"
+                        },
+                        "batch": {
+                            "value": "@pipeline().parameters.BatchNumber",
+                            "type": "Expression"
+                        },
+                        "path": {
+                            "value": "@pipeline().parameters.Path",
+                            "type": "Expression"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricks1",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Commit Effective Date",
+                "type": "Lookup",
+                "dependsOn": [
+                    {
+                        "activity": "Procedure Process",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[usp_CommitDispatchInfo]",
+                        "storedProcedureParameters": {
+                            "Pipeline": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.NotebookPath",
+                                    "type": "Expression"
+                                }
+                            },
+                            "EffectiveDate": {
+                                "type": "Datetime",
+                                "value": {
+                                    "value": "@pipeline().parameters.Date",
+                                    "type": "Expression"
+                                }
+                            },
+                            "TargetDate": {
+                                "type": "Datetime",
+                                "value": null
+                            },
+                            "Batch": {
+                                "type": "Int32",
+                                "value": {
+                                    "value": "@int(pipeline().parameters.BatchNumber)",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "DispatchInfo",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "Set Error 1",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Process",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Set Error 2",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Procedure Process",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Set Error 3",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Commit Effective Date",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Procedure Process",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Copy Data",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.04:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": {
+                        "value": "@pipeline().parameters.ProcedureName",
+                        "type": "Expression"
+                    },
+                    "storedProcedureParameters": {
+                        "PipelineOutput": {
+                            "value": {
+                                "value": "@string(activity('Process').output.runOutput)",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Update ADF Log 3",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Procedure Process",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_UpdateADFLogs]",
+                    "storedProcedureParameters": {
+                        "Session_ID": {
+                            "value": {
+                                "value": "@activity('Process').output.runOutput.SESSION_ID",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        },
+                        "Log": {
+                            "value": {
+                                "value": "@concat(\n'{\"Procedure Process\":',string(activity('Procedure Process').output), '}'\n)",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Save Log",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Process",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_Log]",
+                    "storedProcedureParameters": {
+                        "Log": {
+                            "value": {
+                                "value": "@string(activity('Process').output.runOutput)",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        },
+                        "WorkflowRuntimeID": {
+                            "value": {
+                                "value": "@pipeline().parameters.WorkflowRuntimeID",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Copy Data",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Save Log",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "Process",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[edw].[usp_CopyData]",
+                    "storedProcedureParameters": {
+                        "CopyDataJson": {
+                            "value": {
+                                "value": "@string(activity('Process').output.runOutput.DW_COPY_DATA)",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Set Error 4",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Copy Data",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Set Error 5",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Save Log",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Set Error 6",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Update ADF Log 3",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Update ADF Log 2",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Copy Data",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_UpdateADFLogs]",
+                    "storedProcedureParameters": {
+                        "Session_ID": {
+                            "value": {
+                                "value": "@activity('Process').output.runOutput.SESSION_ID",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        },
+                        "Log": {
+                            "value": {
+                                "value": "@concat(\n'{\"Copy Data\":',string(activity('Copy Data').output), '}'\n)",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Set Error 8",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Update ADF Log 2",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            },
+            {
+                "name": "Update ADF Log 1",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Save Log",
+                        "dependencyConditions": [
+                            "Completed"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_UpdateADFLogs]",
+                    "storedProcedureParameters": {
+                        "Session_ID": {
+                            "value": {
+                                "value": "@activity('Process').output.runOutput.SESSION_ID",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        },
+                        "Log": {
+                            "value": {
+                                "value": "@concat(\n'{\"Date\":\"',string(pipeline().parameters.Date), '\",',\n'\"Batch\":\"',string(pipeline().parameters.BatchNumber), '\",',\n'\"Path\":\"',string(pipeline().parameters.Path), '\"}'\n)",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Set Error 7",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Update ADF Log 1",
+                        "dependencyConditions": [
+                            "Failed"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "Error",
+                    "value": true
+                }
+            }
+        ],
+        "parameters": {
+            "NotebookPath": {
+                "type": "string",
+                "defaultValue": "/Dev/DATA_PROCESS_PIPELINE"
+            },
+            "ProcessName": {
+                "type": "string",
+                "defaultValue": "ProcessNotebookByDates"
+            },
+            "ProcedureName": {
+                "type": "string",
+                "defaultValue": "usp_ProcessProduct"
+            },
+            "WorkflowRuntimeID": {
+                "type": "string"
+            },
+            "Batch": {
+                "type": "string",
+                "defaultValue": "B1"
+            },
+            "Interval": {
+                "type": "string",
+                "defaultValue": "30"
+            },
+            "IgnoreFailed": {
+                "type": "string",
+                "defaultValue": "1"
+            },
+            "Date": {
+                "type": "string"
+            },
+            "BatchNumber": {
+                "type": "string"
+            },
+            "Path": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "Offset": {
+                "type": "String",
+                "defaultValue": "0"
+            },
+            "OffsetCopy": {
+                "type": "String",
+                "defaultValue": "0"
+            },
+            "Error": {
+                "type": "Boolean",
+                "defaultValue": false
+            }
+        },
+        "folder": {
+            "name": "Dev/Core"
+        },
+        "annotations": [],
+        "lastPublishTime": "2021-12-21T02:33:29Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

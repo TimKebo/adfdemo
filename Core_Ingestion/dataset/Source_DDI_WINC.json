@@ -1,0 +1,100 @@
+{
+    "name": "Source_DDI_WINC",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "DDI_S3",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "filename": {
+                "type": "string"
+            },
+            "date": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "AmazonS3Location",
+                "bucketName": "az-cn-ddiwinc2edw-prod/DDIWINC2EDW",
+                "folderPath": {
+                    "value": "@dataset().date",
+                    "type": "Expression"
+                },
+                "fileName": {
+                    "value": "@dataset().filename",
+                    "type": "Expression"
+                }
+            },
+            "columnDelimiter": ",",
+            "escapeChar": "\\",
+            "firstRowAsHeader": true,
+            "quoteChar": "\""
+        },
+        "schema": [
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            },
+            {
+                "type": "String"
+            }
+        ]
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,261 @@
+{
+    "name": "DataMart",
+    "properties": {
+        "activities": [
+            {
+                "name": "usp_InitData_ORGANIZATION",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "usp_InitData_GEO",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_InitData_ORGANIZATION]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "usp_InitData_GEO",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_InitData_GEO]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "usp_InitData_InsTarget",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "usp_InitData_InsAlignment",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_InitData_InsTarget]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "usp_InitData_CountyTarget",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "usp_InitData_InsAlignment",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_InitData_CountyTarget]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "USP_ADS_MONTHLY_SALES_FLOW_NonTarget",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "USP_ADS_SALES_Actual_H",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "USP_ADS_SALES_Actual_C",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[USP_ADS_MONTHLY_SALES_FLOW_NonTarget]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "usp_ads_sales_target",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "USP_ADS_SALES_Actual_C",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "USP_ADS_SALES_Actual_H",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_ads_sales_target]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "usp_InitData_InsAlignment",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "usp_InitData_ORGANIZATION",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_InitData_InsAlignment]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "USP_ADS_SALES_Actual_H",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "usp_InitData_ORGANIZATION",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[USP_ADS_SALES_Actual_H]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "USP_ADS_SALES_Actual_C",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "usp_InitData_ORGANIZATION",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[USP_ADS_SALES_Actual_C]"
+                },
+                "linkedServiceName": {
+                    "referenceName": "DataMartDB",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "folder": {
+            "name": "Dev/DataMart"
+        },
+        "annotations": [],
+        "lastPublishTime": "2021-12-21T13:27:21Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

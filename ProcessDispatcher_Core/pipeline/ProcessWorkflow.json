@@ -1,0 +1,235 @@
+{
+    "name": "ProcessWorkflow",
+    "properties": {
+        "activities": [
+            {
+                "name": "Until",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Create Workflow",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@equals(length(activity('Lookup Waiting Pipeline').output.value), 0)",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Lookup Waiting Pipeline",
+                            "type": "Lookup",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute Pipeline",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "0.00:10:00",
+                                "retry": 1,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "source": {
+                                    "type": "AzureSqlSource",
+                                    "sqlReaderStoredProcedureName": "[dbo].[usp_GetWaitingPipeline]",
+                                    "storedProcedureParameters": {
+                                        "RuntimeID": {
+                                            "type": "String",
+                                            "value": {
+                                                "value": "@pipeline().parameters.RuntimeID",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    "queryTimeout": "02:00:00",
+                                    "partitionOption": "None"
+                                },
+                                "dataset": {
+                                    "referenceName": "DispatchInfo",
+                                    "type": "DatasetReference"
+                                },
+                                "firstRowOnly": false
+                            }
+                        },
+                        {
+                            "name": "Execute Pipeline",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "ProcessPipeline",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": false,
+                                "parameters": {
+                                    "RuntimeID": {
+                                        "value": "@pipeline().parameters.RuntimeID",
+                                        "type": "Expression"
+                                    },
+                                    "Concurrency": {
+                                        "value": "@pipeline().parameters.Concurrency",
+                                        "type": "Expression"
+                                    },
+                                    "Batch": {
+                                        "value": "@pipeline().parameters.Batch",
+                                        "type": "Expression"
+                                    },
+                                    "Interval": {
+                                        "value": "@pipeline().parameters.Interval",
+                                        "type": "Expression"
+                                    },
+                                    "IgnoreFailed": {
+                                        "value": "@pipeline().parameters.IgnoreFailed",
+                                        "type": "Expression"
+                                    },
+                                    "Date": {
+                                        "value": "@pipeline().parameters.Date",
+                                        "type": "Expression"
+                                    },
+                                    "BatchNumber": {
+                                        "value": "@pipeline().parameters.BatchNumber",
+                                        "type": "Expression"
+                                    },
+                                    "Path": {
+                                        "value": "@pipeline().parameters.Path",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Wait",
+                            "type": "Wait",
+                            "dependsOn": [
+                                {
+                                    "activity": "Lookup Waiting Pipeline",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "waitTimeInSeconds": {
+                                    "value": "@int(pipeline().parameters.Interval)",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ],
+                    "timeout": "1.00:00:00"
+                }
+            },
+            {
+                "name": "Create Workflow",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_CreateWorkflow]",
+                    "storedProcedureParameters": {
+                        "Batch": {
+                            "value": {
+                                "value": "@pipeline().parameters.Batch",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        },
+                        "BatchNumber": {
+                            "value": {
+                                "value": "@pipeline().parameters.BatchNumber",
+                                "type": "Expression"
+                            },
+                            "type": "Int32"
+                        },
+                        "Date": {
+                            "value": {
+                                "value": "@pipeline().parameters.Date",
+                                "type": "Expression"
+                            },
+                            "type": "DateTime"
+                        },
+                        "IgnoreFailed": {
+                            "value": {
+                                "value": "@int(pipeline().parameters.IgnoreFailed)",
+                                "type": "Expression"
+                            },
+                            "type": "Int32"
+                        },
+                        "RuntimeID": {
+                            "value": {
+                                "value": "@pipeline().parameters.RuntimeID",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "parameters": {
+            "Batch": {
+                "type": "string",
+                "defaultValue": "B1"
+            },
+            "Interval": {
+                "type": "string",
+                "defaultValue": "30"
+            },
+            "IgnoreFailed": {
+                "type": "string",
+                "defaultValue": "1"
+            },
+            "Date": {
+                "type": "string"
+            },
+            "BatchNumber": {
+                "type": "string"
+            },
+            "Path": {
+                "type": "string"
+            },
+            "Concurrency": {
+                "type": "int",
+                "defaultValue": 1
+            },
+            "RuntimeID": {
+                "type": "string"
+            }
+        },
+        "variables": {
+            "WaitingPipelines": {
+                "type": "Array"
+            }
+        },
+        "folder": {
+            "name": "Dev/Core"
+        },
+        "annotations": [],
+        "lastPublishTime": "2021-12-21T02:33:30Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

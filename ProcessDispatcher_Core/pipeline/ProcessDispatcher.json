@@ -1,0 +1,329 @@
+{
+    "name": "ProcessDispatcher",
+    "properties": {
+        "activities": [
+            {
+                "name": "Get Current Batch",
+                "type": "Lookup",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[usp_GetBatch]",
+                        "storedProcedureParameters": {
+                            "Batch": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().parameters.Batch",
+                                    "type": "Expression"
+                                }
+                            },
+                            "RuntimeID": {
+                                "type": "String",
+                                "value": {
+                                    "value": "@pipeline().RunId",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": {
+                        "referenceName": "DispatchInfo",
+                        "type": "DatasetReference"
+                    },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "Get Batch List",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Get Current Batch",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.00:10:00",
+                    "retry": 1,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Dev/GET_NEXT_BATCH",
+                    "baseParameters": {
+                        "batch": {
+                            "value": "@string(activity('Get Current Batch').output.firstRow.BATCH_NUMBER)",
+                            "type": "Expression"
+                        },
+                        "date": {
+                            "value": "@activity('Get Current Batch').output.firstRow.EFFECTIVE_DATE",
+                            "type": "Expression"
+                        },
+                        "path": {
+                            "value": "@activity('Get Current Batch').output.firstRow.ROOT_PATH",
+                            "type": "Expression"
+                        },
+                        "file": {
+                            "value": "@activity('Get Current Batch').output.firstRow.MARK_FILE",
+                            "type": "Expression"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "AzureDatabricks1",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "ResetRuntimeID",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [
+                    {
+                        "activity": "Until Loop Dates",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "storedProcedureName": "[dbo].[usp_ResetRuntimeID]",
+                    "storedProcedureParameters": {
+                        "Batch": {
+                            "value": {
+                                "value": "@pipeline().parameters.Batch",
+                                "type": "Expression"
+                            },
+                            "type": "String"
+                        }
+                    }
+                },
+                "linkedServiceName": {
+                    "referenceName": "ConfigDB",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "Until Loop Dates",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Get Batch List",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@or(greaterOrEquals(int(variables('Offset')), length(activity('Get Batch List').output.runOutput)), variables('Error'))",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Check Batch Count",
+                            "type": "IfCondition",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "expression": {
+                                    "value": "@greater(length(activity('Get Batch List').output.runOutput), 0)",
+                                    "type": "Expression"
+                                },
+                                "ifTrueActivities": [
+                                    {
+                                        "name": "Execute Workflow",
+                                        "type": "ExecutePipeline",
+                                        "dependsOn": [],
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "pipeline": {
+                                                "referenceName": "ProcessWorkflow",
+                                                "type": "PipelineReference"
+                                            },
+                                            "waitOnCompletion": true,
+                                            "parameters": {
+                                                "Batch": {
+                                                    "value": "@string(activity('Get Current Batch').output.firstRow.BATCH)",
+                                                    "type": "Expression"
+                                                },
+                                                "Interval": {
+                                                    "value": "@string(activity('Get Current Batch').output.firstRow.INTERVAL)",
+                                                    "type": "Expression"
+                                                },
+                                                "IgnoreFailed": {
+                                                    "value": "@string(activity('Get Current Batch').output.firstRow.IGNORE_FAILED)",
+                                                    "type": "Expression"
+                                                },
+                                                "Date": {
+                                                    "value": "@activity('Get Batch List').output.runOutput[int(variables('Offset'))].date",
+                                                    "type": "Expression"
+                                                },
+                                                "BatchNumber": {
+                                                    "value": "@activity('Get Batch List').output.runOutput[int(variables('Offset'))].batch",
+                                                    "type": "Expression"
+                                                },
+                                                "Path": {
+                                                    "value": "@activity('Get Current Batch').output.firstRow.ROOT_PATH",
+                                                    "type": "Expression"
+                                                },
+                                                "Concurrency": {
+                                                    "value": "@activity('Get Current Batch').output.firstRow.Concurrency",
+                                                    "type": "Expression"
+                                                },
+                                                "RuntimeID": {
+                                                    "value": "@activity('Get Current Batch').output.firstRow.RUNTIME_ID",
+                                                    "type": "Expression"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "CommitBatch",
+                                        "type": "SqlServerStoredProcedure",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "Execute Workflow",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "policy": {
+                                            "timeout": "7.00:00:00",
+                                            "retry": 0,
+                                            "retryIntervalInSeconds": 30,
+                                            "secureOutput": false,
+                                            "secureInput": false
+                                        },
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "storedProcedureName": "[dbo].[usp_CommitBatch]",
+                                            "storedProcedureParameters": {
+                                                "Batch": {
+                                                    "value": {
+                                                        "value": "@pipeline().parameters.Batch",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "String"
+                                                },
+                                                "BatchNumber": {
+                                                    "value": {
+                                                        "value": "@activity('Get Batch List').output.runOutput[int(variables('Offset'))].batch",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "Int32"
+                                                },
+                                                "EffectiveDate": {
+                                                    "value": {
+                                                        "value": "@activity('Get Batch List').output.runOutput[int(variables('Offset'))].date",
+                                                        "type": "Expression"
+                                                    },
+                                                    "type": "DateTime"
+                                                }
+                                            }
+                                        },
+                                        "linkedServiceName": {
+                                            "referenceName": "ConfigDB",
+                                            "type": "LinkedServiceReference"
+                                        }
+                                    },
+                                    {
+                                        "name": "Set Offset Copy",
+                                        "type": "SetVariable",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "CommitBatch",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "variableName": "OffsetCopy",
+                                            "value": {
+                                                "value": "@variables('Offset')",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "name": "Set Offset",
+                                        "type": "SetVariable",
+                                        "dependsOn": [
+                                            {
+                                                "activity": "Set Offset Copy",
+                                                "dependencyConditions": [
+                                                    "Succeeded"
+                                                ]
+                                            }
+                                        ],
+                                        "userProperties": [],
+                                        "typeProperties": {
+                                            "variableName": "Offset",
+                                            "value": {
+                                                "value": "@string(add(int(variables('OffsetCopy')), 1))",
+                                                "type": "Expression"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "timeout": "0.10:00:00"
+                }
+            }
+        ],
+        "parameters": {
+            "Batch": {
+                "type": "string",
+                "defaultValue": "B1"
+            }
+        },
+        "variables": {
+            "Offset": {
+                "type": "String",
+                "defaultValue": "0"
+            },
+            "Error": {
+                "type": "Boolean",
+                "defaultValue": false
+            },
+            "OffsetCopy": {
+                "type": "String",
+                "defaultValue": "0"
+            }
+        },
+        "folder": {
+            "name": "Dev/Core"
+        },
+        "annotations": [],
+        "lastPublishTime": "2021-12-21T02:33:31Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

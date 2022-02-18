@@ -1,0 +1,45 @@
+{
+    "name": "DL_ODS_DDI_WINC",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "Blob_Datalake",
+            "type": "LinkedServiceReference"
+        },
+        "parameters": {
+            "tablename": {
+                "type": "string"
+            },
+            "batch": {
+                "type": "string",
+                "defaultValue": "1"
+            },
+            "date": {
+                "type": "string"
+            }
+        },
+        "annotations": [],
+        "type": "DelimitedText",
+        "typeProperties": {
+            "location": {
+                "type": "AzureBlobFSLocation",
+                "fileName": {
+                    "value": "@concat(dataset().tablename, '.csv')",
+                    "type": "Expression"
+                },
+                "folderPath": {
+                    "value": "@concat(dataset().date, '/', dataset().batch)",
+                    "type": "Expression"
+                },
+                "fileSystem": "master/ODS/DDI-WINC"
+            },
+            "columnDelimiter": ",",
+            "rowDelimiter": "\n",
+            "encodingName": "UTF-8",
+            "escapeChar": "\"",
+            "firstRowAsHeader": true,
+            "quoteChar": "\""
+        },
+        "schema": []
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

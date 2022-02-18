@@ -1,0 +1,33 @@
+{
+    "name": "DispatchInfo",
+    "properties": {
+        "linkedServiceName": {
+            "referenceName": "ConfigDB",
+            "type": "LinkedServiceReference"
+        },
+        "annotations": [],
+        "type": "AzureSqlTable",
+        "schema": [
+            {
+                "name": "ID",
+                "type": "int",
+                "precision": 10
+            },
+            {
+                "name": "Pipeline",
+                "type": "nvarchar"
+            },
+            {
+                "name": "LastDate",
+                "type": "datetime",
+                "precision": 23,
+                "scale": 3
+            }
+        ],
+        "typeProperties": {
+            "schema": "dbo",
+            "table": "DispatchInfo"
+        }
+    },
+    "type": "Microsoft.DataFactory/factories/datasets"
+}

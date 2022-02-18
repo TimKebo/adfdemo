@@ -1,0 +1,28 @@
+{
+    "name": "DDI_S3",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "annotations": [],
+        "type": "AmazonS3",
+        "typeProperties": {
+            "serviceUrl": "https://s3.cn-north-1.amazonaws.com.cn/",
+            "accessKeyId": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "AzureKeyVault1",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "ADFLinkService-DDI-S3-AccessKeyID"
+            },
+            "secretAccessKey": {
+                "type": "AzureKeyVaultSecret",
+                "store": {
+                    "referenceName": "AzureKeyVault1",
+                    "type": "LinkedServiceReference"
+                },
+                "secretName": "ADFLinkService-DDI-S3-SecretAccessKey"
+            },
+            "authenticationType": "AccessKey"
+        }
+    }
+}
