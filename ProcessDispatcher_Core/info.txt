@@ -1,6 +1,0 @@
-selected resource name:		ProcessDispatcher
-selected resource type:		pipeline
-factory name:			retaildatafactorytest
-factory location:		chinaeast2
-subscription id:		9de90380-089b-4aeb-8db0-01068286f9d5
-time of download (UTC):		Fri, 18 Feb 2022 05:33:41 GMT
