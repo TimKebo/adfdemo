@@ -1,0 +1,9 @@
+{
+	"name": "timdemoformeta",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "642eed3c-7f82-44c4-b2ee-68882e2eb009",
+		"tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47"
+	}
+}
