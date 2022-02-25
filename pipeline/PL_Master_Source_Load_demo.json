@@ -1,5 +1,5 @@
 {
-	"name": "PL_Master_Source_Load_YYJ",
+	"name": "PL_Master_Source_Load_demo",
 	"properties": {
 		"description": "Master pipeline to start the source load.",
 		"activities": [
@@ -278,7 +278,7 @@
 										"userProperties": [],
 										"typeProperties": {
 											"pipeline": {
-												"referenceName": "PL_Child_FTP_Load_YYJ",
+												"referenceName": "PL_Child_FTP_Load_demo",
 												"type": "PipelineReference"
 											},
 											"waitOnCompletion": true,
@@ -390,6 +390,9 @@
 			"TriggerStartTime": {
 				"type": "string"
 			}
+		},
+		"folder": {
+			"name": "Demo"
 		},
 		"annotations": []
 	},

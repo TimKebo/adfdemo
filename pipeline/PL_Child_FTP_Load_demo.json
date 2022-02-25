@@ -1,5 +1,5 @@
 {
-	"name": "PL_Child_FTP_Load_YYJ",
+	"name": "PL_Child_FTP_Load_demo",
 	"properties": {
 		"description": "Child pipeline for handing File based FTP data.",
 		"activities": [
@@ -822,6 +822,9 @@
 			"DatabricksActivityToBeRun": {
 				"type": "Boolean"
 			}
+		},
+		"folder": {
+			"name": "Demo"
 		},
 		"annotations": []
 	},

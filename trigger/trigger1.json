@@ -6,7 +6,7 @@
 		"pipelines": [
 			{
 				"pipelineReference": {
-					"referenceName": "PL_Master_Source_Load_YYJ",
+					"referenceName": "PL_Master_Source_Load_demo",
 					"type": "PipelineReference"
 				},
 				"parameters": {
