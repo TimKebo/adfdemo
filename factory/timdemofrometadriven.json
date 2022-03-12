@@ -1,0 +1,9 @@
+{
+	"name": "timdemofrometadriven",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "6ea95c2c-143b-458c-bbf7-233c60f24d22",
+		"tenantId": "72f988bf-86f1-41af-91ab-2d7cd011db47"
+	}
+}
